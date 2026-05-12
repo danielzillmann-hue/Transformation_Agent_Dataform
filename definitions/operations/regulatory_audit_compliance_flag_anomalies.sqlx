@@ -1,0 +1,11 @@
+-- Operation: regulatory_audit_compliance_flag_anomalies
+-- UPDATE on stg_audit_master, generated from execute_sql step.
+
+config {
+  type: "operations",
+  dependencies: ["stg_audit_master"],
+  hasOutput: false,
+  description: "update statement against stg_audit_master",
+}
+
+UPDATE ${ref('stg_audit_master')} SET audit_flag = 1 WHERE total_contributions > 50000;

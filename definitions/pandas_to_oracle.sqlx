@@ -1,0 +1,28 @@
+-- Dataform transformation: pandas_to_oracle
+
+config {
+  type: "table",
+  name: "pandas_to_oracle",
+  description: "Transformation from pandas_to_oracle",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_tx_src AS (
+  SELECT
+    transaction_type
+  FROM ${ref('transactions')}
+),
+
+cte_ext_tx_agg AS (
+  SELECT
+    transaction_type,
+    COUNT(*) AS tx_count
+  FROM cte_ext_tx_src AS src
+  GROUP BY transaction_type
+)
+
+SELECT
+  j.transaction_type,
+  j.tx_count
+FROM cte_ext_tx_agg AS j

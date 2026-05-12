@@ -1,0 +1,17 @@
+-- Dataform transformation: final_tax_extract
+
+config {
+  type: "table",
+  name: "final_tax_extract",
+  description: "Transformation from final_tax_extract",
+  tags: ["delivery"],
+}
+
+WITH
+cte_ext_core_src AS (
+  SELECT *
+  FROM ${ref('core_tax_liability')}
+)
+
+SELECT *
+FROM cte_ext_core_src AS j

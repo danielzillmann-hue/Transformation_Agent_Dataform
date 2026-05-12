@@ -1,0 +1,51 @@
+<pipeline name="end_of_month_processing">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <!-- Execute Complex Stored Procedures -->
+        <!-- Calculate the member tax liability for the end of month -->
+        <execute_sql id="exec_tax_liability" connection="super_db">
+            <query>BEGIN SP_CALCULATE_MEMBER_TAX_LIABILITY(SYSDATE); END;</query>
+        </execute_sql>
+
+        <!-- Process End of Month Fees including Admin and Investment fees -->
+        <execute_sql id="exec_eom_fees" connection="super_db">
+            <query>BEGIN SP_PROCESS_END_OF_MONTH_FEES(SYSDATE); END;</query>
+        </execute_sql>
+
+        <!-- Extract the resulting data after stored procedures have modified the transactions -->
+        <extract id="extract_recent_fees" connection="super_db">
+            <query>
+                SELECT account_id, transaction_date, amount, description 
+                FROM transactions 
+                WHERE transaction_type = 'Fee Deduction' 
+                  AND transaction_date >= TRUNC(SYSDATE, 'MM')
+            </query>
+        </extract>
+        
+        <!-- Clean up old extraction staging table -->
+        <execute_sql id="truncate_fee_staging" connection="super_db">
+            <query>TRUNCATE TABLE stg_recent_fees</query>
+        </execute_sql>
+        
+        <!-- Load the results into a staging table for audit or further reporting -->
+        <load input="extract_recent_fees" type="oracle" table="stg_recent_fees" connection="super_db"/>
+
+        <!-- Extract for CSV report delivery -->
+        <extract id="export_fee_report" connection="super_db">
+            <query>
+                SELECT srf.account_id, a.member_id, srf.transaction_date, srf.amount, srf.description
+                FROM stg_recent_fees srf
+                JOIN accounts a ON srf.account_id = a.account_id
+            </query>
+        </extract>
+
+        <!-- Transform to aggregate fees by member -->
+        <aggregate id="agg_fees_by_member" input="export_fee_report" group_by="MEMBER_ID">
+            <sum column="AMOUNT" result_column="TOTAL_FEES_DEDUCTED"/>
+        </aggregate>
+
+        <load input="agg_fees_by_member" type="csv" path="eom_fees_report.csv" />
+    </steps>
+</pipeline>

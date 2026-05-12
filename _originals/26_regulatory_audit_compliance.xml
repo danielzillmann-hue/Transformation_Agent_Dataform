@@ -1,0 +1,57 @@
+<pipeline name="regulatory_audit_compliance">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <!-- Extraction of base tables -->
+        <extract id="raw_members" connection="super_db">
+            <query>SELECT member_id, member_type FROM members</query>
+        </extract>
+        <extract id="raw_accounts" connection="super_db">
+            <query>SELECT account_id, member_id FROM accounts</query>
+        </extract>
+        <extract id="raw_tx" connection="super_db">
+            <query>SELECT account_id, amount FROM transactions WHERE transaction_type LIKE '%Contribution%'</query>
+        </extract>
+
+        <!-- Aggregation of transactions -->
+        <aggregate id="agg_tx" input="raw_tx" group_by="ACCOUNT_ID">
+            <sum column="AMOUNT" result_column="TOTAL_CONTRIBUTIONS"/>
+        </aggregate>
+
+        <!-- In-memory chaining joins -->
+        <join id="mem_acc" left="raw_members" right="raw_accounts" on="MEMBER_ID" how="inner"/>
+        <join id="mem_acc_tx" left="mem_acc" right="agg_tx" on="ACCOUNT_ID" how="left"/>
+
+        <!-- Truncate and Load into Staging -->
+        <execute_sql id="clean_stg" connection="super_db">
+            <query>TRUNCATE TABLE stg_audit_master</query>
+        </execute_sql>
+        <load input="mem_acc_tx" type="oracle" table="stg_audit_master" connection="super_db"/>
+
+        <!-- Mid-flight SQL Anomaly Flagging directly in DB -->
+        <execute_sql id="flag_anomalies" connection="super_db">
+            <query>UPDATE stg_audit_master SET audit_flag = 1 WHERE total_contributions > 50000</query>
+        </execute_sql>
+        <execute_sql id="flag_anomalies_low" connection="super_db">
+            <query>UPDATE stg_audit_master SET audit_flag = 2 WHERE total_contributions &lt; 1000</query>
+        </execute_sql>
+
+        <!-- Re-extract from staging -->
+        <extract id="ext_flagged" connection="super_db">
+            <query>SELECT member_id, account_id, total_contributions, audit_flag FROM stg_audit_master WHERE audit_flag > 0</query>
+        </extract>
+
+        <!-- Clean and prep final dataframe -->
+        <transform id="map_risk" input="ext_flagged">
+            <calculate_category column="AUDIT_FLAG" result_column="RISK_CATEGORY" low="1.5" high="2.5"/>
+            <drop columns="AUDIT_FLAG"/>
+        </transform>
+
+        <!-- Truncate and Load to Final Fact Table (No CSV Output) -->
+        <execute_sql id="clean_fact" connection="super_db">
+            <query>TRUNCATE TABLE fact_regulatory_audit</query>
+        </execute_sql>
+        <load input="map_risk" type="oracle" table="fact_regulatory_audit" connection="super_db"/>
+    </steps>
+</pipeline>

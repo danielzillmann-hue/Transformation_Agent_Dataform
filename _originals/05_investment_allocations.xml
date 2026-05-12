@@ -1,0 +1,18 @@
+<pipeline name="investment_allocations">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_alloc" connection="super_db">
+            <query>SELECT account_id, investment_id, allocation_percentage FROM account_investments</query>
+        </extract>
+        <extract id="ext_opts" connection="super_db">
+            <query>SELECT investment_id, option_name, risk_level FROM investment_options</query>
+        </extract>
+        <join id="join_alloc" left="ext_alloc" right="ext_opts" on="INVESTMENT_ID" how="inner"/>
+        <transform id="enrich_alloc" input="join_alloc">
+            <math operation="divide" col1="ALLOCATION_PERCENTAGE" val2="100" result_column="DECIMAL_ALLOCATION"/>
+        </transform>
+        <load input="enrich_alloc" type="csv" path="investment_allocations.csv"/>
+    </steps>
+</pipeline>

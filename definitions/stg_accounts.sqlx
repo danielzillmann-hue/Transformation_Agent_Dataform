@@ -1,0 +1,27 @@
+-- Dataform transformation: stg_accounts
+
+config {
+  type: "table",
+  name: "stg_accounts",
+  description: "Transformation from stg_accounts",
+  tags: ["staging"],
+}
+
+WITH
+cte_ext_accounts_src AS (
+  SELECT
+    account_id,
+    member_id,
+    account_type_id,
+    status,
+    open_date
+  FROM ${ref('accounts')}
+)
+
+SELECT
+  j.account_id,
+  j.member_id,
+  j.account_type_id,
+  j.status,
+  j.open_date
+FROM cte_ext_accounts_src AS j

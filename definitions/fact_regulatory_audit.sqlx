@@ -1,0 +1,33 @@
+-- Dataform transformation: fact_regulatory_audit
+
+config {
+  type: "table",
+  name: "fact_regulatory_audit",
+  description: "Transformation from fact_regulatory_audit",
+  tags: ["reporting"],
+}
+
+WITH
+cte_ext_flagged_src AS (
+  SELECT
+    member_id,
+    account_id,
+    total_contributions,
+    audit_flag
+  FROM ${ref('stg_audit_master')}
+  WHERE audit_flag > 0
+),
+
+cte_map_risk AS (
+  SELECT
+    src.*,
+    CASE WHEN src.AUDIT_FLAG < 1.5 THEN 'low' WHEN src.AUDIT_FLAG > 2.5 THEN 'high' ELSE 'medium' END AS RISK_CATEGORY
+  FROM cte_ext_flagged_src AS src
+)
+
+SELECT
+  j.member_id,
+  j.account_id,
+  j.total_contributions,
+  j.RISK_CATEGORY
+FROM cte_map_risk AS j

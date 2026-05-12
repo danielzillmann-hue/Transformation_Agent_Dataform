@@ -1,0 +1,20 @@
+<pipeline name="fee_deductions">
+    <connections>
+        <connection name="super_db" type="oracle" host="34.151.82.212" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_tx" connection="super_db">
+            <query>SELECT account_id, amount, transaction_type FROM transactions</query>
+        </extract>
+        <transform id="filter_fees" input="ext_tx">
+            <filter_text column="TRANSACTION_TYPE" contains="Fee"/>
+        </transform>
+        <aggregate id="agg_fees" input="filter_fees" group_by="ACCOUNT_ID">
+            <sum column="AMOUNT" result_column="TOTAL_FEES"/>
+        </aggregate>
+        <transform id="calc_tier" input="agg_fees">
+            <calculate_category column="TOTAL_FEES" result_column="FEE_TIER" low="-20" high="-10"/>
+        </transform>
+        <load input="calc_tier" type="csv" path="fee_deductions.csv"/>
+    </steps>
+</pipeline>

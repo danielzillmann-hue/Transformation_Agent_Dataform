@@ -1,0 +1,25 @@
+<pipeline name="core_account_summary">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_stg_acc" connection="super_db">
+            <query>SELECT account_id, member_id, account_type_id, status FROM stg_accounts</query>
+        </extract>
+        <extract id="ext_members" connection="super_db">
+            <query>SELECT member_id, first_name, last_name FROM members</query>
+        </extract>
+        <extract id="ext_types" connection="super_db">
+            <query>SELECT account_type_id, type_name FROM account_types</query>
+        </extract>
+        <join id="join_acc_members" left="ext_stg_acc" right="ext_members" on="MEMBER_ID" how="left"/>
+        <join id="join_full" left="join_acc_members" right="ext_types" on="ACCOUNT_TYPE_ID" how="left"/>
+        <transform id="clean_cols" input="join_full">
+            <drop columns="ACCOUNT_TYPE_ID"/>
+        </transform>
+        <execute_sql id="clean_core" connection="super_db">
+            <query>TRUNCATE TABLE core_account_summary</query>
+        </execute_sql>
+        <load input="clean_cols" type="oracle" table="core_account_summary" connection="super_db"/>
+    </steps>
+</pipeline>

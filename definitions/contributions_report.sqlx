@@ -1,0 +1,30 @@
+-- Dataform transformation: contributions_report
+
+config {
+  type: "table",
+  name: "contributions_report",
+  description: "Transformation from contributions_report",
+  tags: ["reporting"],
+}
+
+WITH
+cte_ext_tx_src AS (
+  SELECT
+    account_id,
+    amount,
+    transaction_type
+  FROM ${ref('transactions')}
+),
+
+cte_agg_contrib AS (
+  SELECT
+    ACCOUNT_ID,
+    SUM(AMOUNT) AS TOTAL_CONTRIBUTIONS
+  FROM cte_ext_tx_src AS src
+  GROUP BY ACCOUNT_ID
+)
+
+SELECT
+  j.ACCOUNT_ID,
+  j.TOTAL_CONTRIBUTIONS
+FROM cte_agg_contrib AS j

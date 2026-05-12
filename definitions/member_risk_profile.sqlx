@@ -1,0 +1,19 @@
+-- Dataform transformation: member_risk_profile
+
+config {
+  type: "table",
+  name: "member_risk_profile",
+  description: "Transformation from member_risk_profile",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_view_src AS (
+  SELECT
+    risk_level
+  FROM ${ref('vw_member_risk_profile')}
+  WHERE risk_level = 'High'
+)
+
+SELECT *
+FROM cte_ext_view_src AS j

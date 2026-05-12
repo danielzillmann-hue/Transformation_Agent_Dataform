@@ -1,0 +1,35 @@
+-- Dataform transformation: daily_transactions
+
+config {
+  type: "table",
+  name: "daily_transactions",
+  description: "Transformation from daily_transactions",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_tx_src AS (
+  SELECT
+    transaction_id,
+    account_id,
+    transaction_date,
+    transaction_type,
+    amount
+  FROM ${ref('transactions')}
+),
+
+cte_tx_format AS (
+  SELECT
+    src.*,
+    CASE WHEN src.AMOUNT < 500 THEN 'low' WHEN src.AMOUNT > 1500 THEN 'high' ELSE 'medium' END AS TX_SIZE
+  FROM cte_ext_tx_src AS src
+)
+
+SELECT
+  j.transaction_id,
+  j.account_id,
+  j.transaction_date,
+  j.transaction_type,
+  j.amount,
+  j.TX_SIZE
+FROM cte_tx_format AS j

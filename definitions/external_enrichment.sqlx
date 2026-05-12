@@ -1,0 +1,53 @@
+-- Dataform transformation: external_enrichment
+
+config {
+  type: "table",
+  name: "external_enrichment",
+  description: "Transformation from external_enrichment",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_opts_src AS (
+  SELECT
+    investment_id,
+    option_name,
+    risk_level
+  FROM ${ref('investment_options')}
+),
+
+cte_ext_benchmarks_src AS (
+  SELECT
+    RISK_LEVEL,
+    YTD_RETURN_PCT,
+    MARKET_BENCHMARK_RETURN
+  FROM ${ref('market_benchmarks')}
+),
+
+cte_join_enrich AS (
+  SELECT
+    detail.investment_id AS investment_id,
+    detail.option_name AS option_name,
+    detail.risk_level AS risk_level,
+    master.YTD_RETURN_PCT AS YTD_RETURN_PCT,
+    master.MARKET_BENCHMARK_RETURN AS MARKET_BENCHMARK_RETURN
+  FROM cte_ext_opts_src AS detail
+  LEFT JOIN cte_ext_benchmarks_src AS master
+    ON detail.RISK_LEVEL = master.RISK_LEVEL
+),
+
+cte_sim_perf AS (
+  SELECT
+    src.*,
+    src.YTD_RETURN_PCT - src.MARKET_BENCHMARK_RETURN AS PERFORMANCE_VS_BENCHMARK
+  FROM cte_join_enrich AS src
+)
+
+SELECT
+  j.investment_id,
+  j.option_name,
+  j.risk_level,
+  j.YTD_RETURN_PCT,
+  j.MARKET_BENCHMARK_RETURN,
+  j.PERFORMANCE_VS_BENCHMARK
+FROM cte_sim_perf AS j

@@ -1,0 +1,16 @@
+<pipeline name="calculate_monthly_fees">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <execute_sql id="insert_summaries" connection="super_db">
+            <query>
+                INSERT INTO monthly_fee_summaries (account_id, summary_month, total_fees_charged)
+                SELECT account_id, TRUNC(transaction_date, 'MM'), SUM(amount)
+                FROM transactions
+                WHERE transaction_type LIKE '%Fee%'
+                GROUP BY account_id, TRUNC(transaction_date, 'MM')
+            </query>
+        </execute_sql>
+    </steps>
+</pipeline>

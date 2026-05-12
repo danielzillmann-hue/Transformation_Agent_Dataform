@@ -1,0 +1,23 @@
+-- Dataform transformation: final_fee_extract
+
+config {
+  type: "table",
+  name: "final_fee_extract",
+  description: "Transformation from final_fee_extract",
+  tags: ["delivery"],
+}
+
+WITH
+cte_ext_core_fees_src AS (
+  SELECT
+    account_id,
+    total_fees,
+    fee_tier
+  FROM ${ref('core_fee_aggregation')}
+)
+
+SELECT
+  j.account_id,
+  j.total_fees,
+  j.fee_tier
+FROM cte_ext_core_fees_src AS j

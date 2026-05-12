@@ -1,0 +1,28 @@
+-- Dataform transformation: active_member_addresses
+
+config {
+  type: "table",
+  name: "active_member_addresses",
+  description: "Transformation from active_member_addresses",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_active_addr_src AS (
+  SELECT
+    member_id,
+    address_line,
+    city,
+    state,
+    postcode
+  FROM ${ref('member_addresses')}
+  WHERE is_current = 1
+)
+
+SELECT
+  j.member_id,
+  j.address_line,
+  j.city,
+  j.state,
+  j.postcode
+FROM cte_ext_active_addr_src AS j

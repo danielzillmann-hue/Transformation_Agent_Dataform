@@ -1,0 +1,19 @@
+<pipeline name="stg_daily_metrics">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <execute_sql id="clean_stg" connection="super_db">
+            <query>DELETE FROM stg_daily_metrics</query>
+        </execute_sql>
+        <execute_sql id="insert_stg" connection="super_db">
+            <query>
+                INSERT INTO stg_daily_metrics (account_id, metric_date, total_in)
+                SELECT account_id, TRUNC(transaction_date), SUM(amount)
+                FROM transactions
+                WHERE amount > 0
+                GROUP BY account_id, TRUNC(transaction_date)
+            </query>
+        </execute_sql>
+    </steps>
+</pipeline>

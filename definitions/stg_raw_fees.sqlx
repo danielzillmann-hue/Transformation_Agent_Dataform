@@ -1,0 +1,28 @@
+-- Dataform transformation: stg_raw_fees
+
+config {
+  type: "table",
+  name: "stg_raw_fees",
+  description: "Transformation from stg_raw_fees",
+  tags: ["staging"],
+}
+
+WITH
+cte_ext_tx_src AS (
+  SELECT
+    transaction_id,
+    account_id,
+    transaction_date,
+    amount,
+    description
+  FROM ${ref('transactions')}
+  WHERE transaction_type LIKE '%Fee%'
+)
+
+SELECT
+  j.transaction_id,
+  j.account_id,
+  j.transaction_date,
+  j.amount,
+  j.description
+FROM cte_ext_tx_src AS j

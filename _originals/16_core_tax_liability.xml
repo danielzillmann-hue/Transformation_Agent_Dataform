@@ -1,0 +1,25 @@
+<pipeline name="core_tax_liability">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_stg" connection="super_db">
+            <query>
+                SELECT m.member_id, m.member_type, SUM(s.total_in) as taxable_income
+                FROM stg_daily_metrics s
+                JOIN accounts a ON s.account_id = a.account_id
+                JOIN members m ON a.member_id = m.member_id
+                GROUP BY m.member_id, m.member_type
+            </query>
+        </extract>
+        <extract_csv id="ext_tax" path="../data/tax_brackets.csv"/>
+        <join id="join_tax" left="ext_stg" right="ext_tax" on="MEMBER_TYPE" how="left"/>
+        <transform id="calc_tax" input="join_tax">
+            <math operation="multiply" col1="TAXABLE_INCOME" col2="TAX_RATE" result_column="ESTIMATED_TAX"/>
+        </transform>
+        <execute_sql id="clean_core" connection="super_db">
+            <query>DELETE FROM core_tax_liability</query>
+        </execute_sql>
+        <load input="calc_tax" type="oracle" table="core_tax_liability" connection="super_db"/>
+    </steps>
+</pipeline>

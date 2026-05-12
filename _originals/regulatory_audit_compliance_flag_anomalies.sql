@@ -1,0 +1,1 @@
+UPDATE stg_audit_master SET audit_flag = 1 WHERE total_contributions > 50000

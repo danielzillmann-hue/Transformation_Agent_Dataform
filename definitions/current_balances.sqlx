@@ -1,0 +1,29 @@
+-- Dataform transformation: current_balances
+
+config {
+  type: "table",
+  name: "current_balances",
+  description: "Transformation from current_balances",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_tx_src AS (
+  SELECT
+    account_id,
+    amount
+  FROM ${ref('transactions')}
+),
+
+cte_agg_bal AS (
+  SELECT
+    ACCOUNT_ID,
+    SUM(AMOUNT) AS CURRENT_BALANCE
+  FROM cte_ext_tx_src AS src
+  GROUP BY ACCOUNT_ID
+)
+
+SELECT
+  j.ACCOUNT_ID,
+  j.CURRENT_BALANCE
+FROM cte_agg_bal AS j

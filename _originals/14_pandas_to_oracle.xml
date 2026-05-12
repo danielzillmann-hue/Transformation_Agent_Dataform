@@ -1,0 +1,14 @@
+<pipeline name="pandas_to_oracle">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <execute_sql id="clean_table" connection="super_db">
+            <query>DELETE FROM transaction_stats</query>
+        </execute_sql>
+        <extract id="ext_tx" connection="super_db">
+            <query>SELECT transaction_type, COUNT(*) as tx_count FROM transactions GROUP BY transaction_type</query>
+        </extract>
+        <load input="ext_tx" type="oracle" table="transaction_stats" connection="super_db"/>
+    </steps>
+</pipeline>

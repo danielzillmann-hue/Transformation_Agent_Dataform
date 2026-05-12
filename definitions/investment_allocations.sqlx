@@ -1,0 +1,53 @@
+-- Dataform transformation: investment_allocations
+
+config {
+  type: "table",
+  name: "investment_allocations",
+  description: "Transformation from investment_allocations",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_alloc_src AS (
+  SELECT
+    account_id,
+    investment_id,
+    allocation_percentage
+  FROM ${ref('account_investments')}
+),
+
+cte_ext_opts_src AS (
+  SELECT
+    investment_id,
+    option_name,
+    risk_level
+  FROM ${ref('investment_options')}
+),
+
+cte_join_alloc AS (
+  SELECT
+    detail.account_id AS account_id,
+    detail.investment_id AS investment_id,
+    detail.allocation_percentage AS allocation_percentage,
+    master.option_name AS option_name,
+    master.risk_level AS risk_level
+  FROM cte_ext_alloc_src AS detail
+  INNER JOIN cte_ext_opts_src AS master
+    ON detail.INVESTMENT_ID = master.INVESTMENT_ID
+),
+
+cte_enrich_alloc AS (
+  SELECT
+    src.*,
+    src.ALLOCATION_PERCENTAGE / 100 AS DECIMAL_ALLOCATION
+  FROM cte_join_alloc AS src
+)
+
+SELECT
+  j.account_id,
+  j.investment_id,
+  j.allocation_percentage,
+  j.option_name,
+  j.risk_level,
+  j.DECIMAL_ALLOCATION
+FROM cte_enrich_alloc AS j

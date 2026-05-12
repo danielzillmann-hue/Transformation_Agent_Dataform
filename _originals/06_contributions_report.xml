@@ -1,0 +1,17 @@
+<pipeline name="contributions_report">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_tx" connection="super_db">
+            <query>SELECT account_id, amount, transaction_type FROM transactions</query>
+        </extract>
+        <transform id="filter_contrib" input="ext_tx">
+            <filter_text column="TRANSACTION_TYPE" contains="Contribution"/>
+        </transform>
+        <aggregate id="agg_contrib" input="filter_contrib" group_by="ACCOUNT_ID">
+            <sum column="AMOUNT" result_column="TOTAL_CONTRIBUTIONS"/>
+        </aggregate>
+        <load input="agg_contrib" type="csv" path="contributions_report.csv"/>
+    </steps>
+</pipeline>

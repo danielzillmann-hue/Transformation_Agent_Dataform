@@ -1,0 +1,14 @@
+<pipeline name="investment_performance">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_opts" connection="super_db">
+            <query>SELECT investment_id, option_name, risk_level FROM investment_options</query>
+        </extract>
+        <transform id="sim_perf" input="ext_opts">
+            <simulate_performance/>
+        </transform>
+        <load input="sim_perf" type="csv" path="investment_performance.csv"/>
+    </steps>
+</pipeline>

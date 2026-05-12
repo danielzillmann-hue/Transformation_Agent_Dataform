@@ -1,0 +1,38 @@
+-- Dataform transformation: tax_reporting
+
+config {
+  type: "table",
+  name: "tax_reporting",
+  description: "Transformation from tax_reporting",
+  tags: ["reporting"],
+}
+
+WITH
+cte_ext_tx_src AS (
+  SELECT
+    account_id,
+    amount,
+    transaction_type
+  FROM ${ref('transactions')}
+),
+
+cte_agg_tax AS (
+  SELECT
+    ACCOUNT_ID,
+    SUM(AMOUNT) AS TOTAL_TAX
+  FROM cte_ext_tx_src AS src
+  GROUP BY ACCOUNT_ID
+),
+
+cte_calc_abs_tax AS (
+  SELECT
+    src.*,
+    src.TOTAL_TAX * -1 AS ABS_TAX_PAID
+  FROM cte_agg_tax AS src
+)
+
+SELECT
+  j.ACCOUNT_ID,
+  j.TOTAL_TAX,
+  j.ABS_TAX_PAID
+FROM cte_calc_abs_tax AS j

@@ -1,0 +1,20 @@
+<pipeline name="core_fee_aggregation">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_stg_fees" connection="super_db">
+            <query>SELECT account_id, amount FROM stg_raw_fees</query>
+        </extract>
+        <aggregate id="agg_fees" input="ext_stg_fees" group_by="ACCOUNT_ID">
+            <sum column="AMOUNT" result_column="TOTAL_FEES"/>
+        </aggregate>
+        <transform id="calc_tier" input="agg_fees">
+            <calculate_category column="TOTAL_FEES" result_column="FEE_TIER" low="-20" high="-10"/>
+        </transform>
+        <execute_sql id="clean_core" connection="super_db">
+            <query>TRUNCATE TABLE core_fee_aggregation</query>
+        </execute_sql>
+        <load input="calc_tier" type="oracle" table="core_fee_aggregation" connection="super_db"/>
+    </steps>
+</pipeline>

@@ -1,0 +1,68 @@
+-- Dataform transformation: stg_audit_master
+
+config {
+  type: "table",
+  name: "stg_audit_master",
+  description: "Transformation from stg_audit_master",
+  tags: ["staging"],
+}
+
+WITH
+cte_raw_members_src AS (
+  SELECT
+    member_id,
+    member_type
+  FROM ${ref('members')}
+),
+
+cte_raw_accounts_src AS (
+  SELECT
+    account_id,
+    member_id
+  FROM ${ref('accounts')}
+),
+
+cte_raw_tx_src AS (
+  SELECT
+    account_id,
+    amount
+  FROM ${ref('transactions')}
+  WHERE transaction_type LIKE '%Contribution%'
+),
+
+cte_agg_tx AS (
+  SELECT
+    ACCOUNT_ID,
+    SUM(AMOUNT) AS TOTAL_CONTRIBUTIONS
+  FROM cte_raw_tx_src AS src
+  GROUP BY ACCOUNT_ID
+),
+
+cte_mem_acc AS (
+  SELECT
+    detail.member_id AS member_id,
+    detail.member_type AS member_type,
+    master.account_id AS account_id
+  FROM cte_raw_members_src AS detail
+  INNER JOIN cte_raw_accounts_src AS master
+    ON detail.MEMBER_ID = master.MEMBER_ID
+),
+
+cte_mem_acc_tx AS (
+  SELECT
+    detail.member_id AS member_id,
+    detail.member_type AS member_type,
+    detail.account_id AS account_id,
+    master.TOTAL_CONTRIBUTIONS AS TOTAL_CONTRIBUTIONS
+  FROM cte_mem_acc AS detail
+  LEFT JOIN cte_agg_tx AS master
+    ON detail.ACCOUNT_ID = master.ACCOUNT_ID
+)
+
+SELECT
+  j.member_id,
+  j.member_type,
+  j.account_id,
+  j.TOTAL_CONTRIBUTIONS,
+  CAST(NULL AS INT64) AS audit_flag
+FROM cte_mem_acc_tx AS j

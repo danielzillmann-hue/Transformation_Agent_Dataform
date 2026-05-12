@@ -1,0 +1,20 @@
+<pipeline name="tax_reporting">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_tx" connection="super_db">
+            <query>SELECT account_id, amount, transaction_type FROM transactions</query>
+        </extract>
+        <transform id="filter_tax" input="ext_tx">
+            <filter_text column="TRANSACTION_TYPE" contains="Tax"/>
+        </transform>
+        <aggregate id="agg_tax" input="filter_tax" group_by="ACCOUNT_ID">
+            <sum column="AMOUNT" result_column="TOTAL_TAX"/>
+        </aggregate>
+        <transform id="calc_abs_tax" input="agg_tax">
+            <math operation="multiply" col1="TOTAL_TAX" val2="-1" result_column="ABS_TAX_PAID"/>
+        </transform>
+        <load input="calc_abs_tax" type="csv" path="tax_reporting.csv"/>
+    </steps>
+</pipeline>

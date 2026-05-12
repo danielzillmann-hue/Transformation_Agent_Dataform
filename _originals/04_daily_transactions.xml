@@ -1,0 +1,15 @@
+<pipeline name="daily_transactions">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_tx" connection="super_db">
+            <query>SELECT transaction_id, account_id, transaction_date, transaction_type, amount FROM transactions</query>
+        </extract>
+        <transform id="tx_format" input="ext_tx">
+            <filter condition="AMOUNT &gt; 100"/>
+            <calculate_category column="AMOUNT" result_column="TX_SIZE" low="500" high="1500"/>
+        </transform>
+        <load input="tx_format" type="csv" path="daily_transactions.csv"/>
+    </steps>
+</pipeline>

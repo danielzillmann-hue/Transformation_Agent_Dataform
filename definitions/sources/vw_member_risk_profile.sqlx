@@ -1,0 +1,12 @@
+-- Source view ported from Oracle to BigQuery by intelia
+-- Lineage & Usage Agents.
+
+config {
+  type: "view",
+  database: "transformation-agent-demo",
+  schema: "migration_raw",
+  name: "vw_member_risk_profile",
+  description: "Oracle view ported to BigQuery — translated from CREATE VIEW source.",
+}
+
+SELECT m.member_id, m.first_name, m.last_name, a.account_id, a.status, o.option_name, o.risk_level, ai.allocation_percentage FROM ${ref('members')} AS m JOIN ${ref('accounts')} AS a ON m.member_id = a.member_id JOIN ${ref('account_investments')} AS ai ON a.account_id = ai.account_id JOIN ${ref('investment_options')} AS o ON ai.investment_id = o.investment_id

@@ -1,0 +1,17 @@
+<pipeline name="current_balances">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="ext_tx" connection="super_db">
+            <query>SELECT account_id, amount FROM transactions</query>
+        </extract>
+        <aggregate id="agg_bal" input="ext_tx" group_by="ACCOUNT_ID">
+            <sum column="AMOUNT" result_column="CURRENT_BALANCE"/>
+        </aggregate>
+        <transform id="format_bal" input="agg_bal">
+            <filter condition="CURRENT_BALANCE &gt; 0"/>
+        </transform>
+        <load input="format_bal" type="csv" path="current_balances.csv"/>
+    </steps>
+</pipeline>

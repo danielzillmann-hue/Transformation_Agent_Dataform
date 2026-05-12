@@ -1,0 +1,29 @@
+-- Dataform transformation: final_accounts_extract
+
+config {
+  type: "table",
+  name: "final_accounts_extract",
+  description: "Transformation from final_accounts_extract",
+  tags: ["delivery"],
+}
+
+WITH
+cte_ext_core_acc_src AS (
+  SELECT
+    account_id,
+    member_id,
+    first_name,
+    last_name,
+    type_name,
+    status
+  FROM ${ref('core_account_summary')}
+)
+
+SELECT
+  j.account_id,
+  j.member_id,
+  j.first_name,
+  j.last_name,
+  j.type_name,
+  j.status
+FROM cte_ext_core_acc_src AS j

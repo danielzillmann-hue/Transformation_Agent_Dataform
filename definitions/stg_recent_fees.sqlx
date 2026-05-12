@@ -1,0 +1,26 @@
+-- Dataform transformation: stg_recent_fees
+
+config {
+  type: "table",
+  name: "stg_recent_fees",
+  description: "Transformation from stg_recent_fees",
+  tags: ["staging"],
+}
+
+WITH
+cte_extract_recent_fees_src AS (
+  SELECT
+    account_id,
+    transaction_date,
+    amount,
+    description
+  FROM ${ref('transactions')}
+  WHERE transaction_type = 'Fee Deduction' AND transaction_date >= DATE_TRUNC(CURRENT_DATETIME(), MONTH)
+)
+
+SELECT
+  j.account_id,
+  j.transaction_date,
+  j.amount,
+  j.description
+FROM cte_extract_recent_fees_src AS j

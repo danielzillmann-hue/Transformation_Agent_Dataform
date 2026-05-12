@@ -1,0 +1,10 @@
+-- Operation: update_account_status_mark_inactive
+-- UPDATE on accounts, generated from execute_sql step.
+
+config {
+  type: "operations",
+  hasOutput: false,
+  description: "update statement against accounts",
+}
+
+UPDATE ${ref('accounts')} SET status = 'Inactive' WHERE account_id IN (SELECT account_id FROM ${ref('accounts')} WHERE open_date < DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 365 DAY));

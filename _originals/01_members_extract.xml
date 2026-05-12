@@ -1,0 +1,16 @@
+<pipeline name="members_extract">
+    <connections>
+        <connection name="super_db" type="oracle" host="35.201.6.195" port="1521" service="XEPDB1" user="superuser" password="superpassword"/>
+    </connections>
+    <steps>
+        <extract id="raw_members" connection="super_db">
+            <query>SELECT member_id, first_name, last_name, date_of_birth, member_type, join_date FROM members</query>
+        </extract>
+        <transform id="processed_members" input="raw_members">
+            <calculate_age dob_column="DATE_OF_BIRTH" result_column="AGE"/>
+            <concat cols="FIRST_NAME,LAST_NAME" separator=" " result_column="FULL_NAME"/>
+            <drop columns="FIRST_NAME,LAST_NAME"/>
+        </transform>
+        <load input="processed_members" type="csv" path="members_extract.csv"/>
+    </steps>
+</pipeline>

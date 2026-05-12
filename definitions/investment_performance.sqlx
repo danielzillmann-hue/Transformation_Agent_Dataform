@@ -1,0 +1,23 @@
+-- Dataform transformation: investment_performance
+
+config {
+  type: "table",
+  name: "investment_performance",
+  description: "Transformation from investment_performance",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_opts_src AS (
+  SELECT
+    investment_id,
+    option_name,
+    risk_level
+  FROM ${ref('investment_options')}
+)
+
+SELECT
+  j.investment_id,
+  j.option_name,
+  j.risk_level
+FROM cte_ext_opts_src AS j

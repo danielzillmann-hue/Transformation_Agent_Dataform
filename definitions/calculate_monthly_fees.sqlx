@@ -1,0 +1,34 @@
+-- Dataform transformation: calculate_monthly_fees
+
+config {
+  type: "table",
+  name: "calculate_monthly_fees",
+  description: "Transformation from calculate_monthly_fees",
+  tags: ["transformation"],
+}
+
+WITH
+cte_insert_summaries_src AS (
+  SELECT
+    account_id,
+    transaction_date,
+    amount,
+    transaction_type
+  FROM ${ref('transactions')}
+  WHERE transaction_type LIKE '%Fee%'
+),
+
+cte_insert_summaries_agg AS (
+  SELECT
+    account_id,
+    DATE_TRUNC(transaction_date, MONTH) AS summary_month,
+    SUM(amount) AS total_fees_charged
+  FROM cte_insert_summaries_src AS src
+  GROUP BY account_id, DATE_TRUNC(transaction_date, MONTH)
+)
+
+SELECT
+  j.account_id,
+  j.summary_month,
+  j.total_fees_charged
+FROM cte_insert_summaries_agg AS j

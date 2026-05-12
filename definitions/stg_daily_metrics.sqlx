@@ -1,0 +1,33 @@
+-- Dataform transformation: stg_daily_metrics
+
+config {
+  type: "table",
+  name: "stg_daily_metrics",
+  description: "Transformation from stg_daily_metrics",
+  tags: ["staging"],
+}
+
+WITH
+cte_insert_stg_src AS (
+  SELECT
+    account_id,
+    transaction_date,
+    amount
+  FROM ${ref('transactions')}
+  WHERE amount > 0
+),
+
+cte_insert_stg_agg AS (
+  SELECT
+    account_id,
+    DATETIME_TRUNC(transaction_date, DAY) AS metric_date,
+    SUM(amount) AS total_in
+  FROM cte_insert_stg_src AS src
+  GROUP BY account_id, DATETIME_TRUNC(transaction_date, DAY)
+)
+
+SELECT
+  j.account_id,
+  j.metric_date,
+  j.total_in
+FROM cte_insert_stg_agg AS j

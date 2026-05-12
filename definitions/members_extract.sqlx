@@ -1,0 +1,27 @@
+-- Dataform transformation: members_extract
+
+config {
+  type: "table",
+  name: "members_extract",
+  description: "Transformation from members_extract",
+  tags: ["delivery"],
+}
+
+WITH
+cte_raw_members_src AS (
+  SELECT
+    member_id,
+    first_name,
+    last_name,
+    date_of_birth,
+    member_type,
+    join_date
+  FROM ${ref('members')}
+)
+
+SELECT
+  j.member_id,
+  j.date_of_birth,
+  j.member_type,
+  j.join_date
+FROM cte_raw_members_src AS j

@@ -1,0 +1,69 @@
+-- Dataform transformation: core_account_summary
+
+config {
+  type: "table",
+  name: "core_account_summary",
+  description: "Transformation from core_account_summary",
+  tags: ["core"],
+}
+
+WITH
+cte_ext_stg_acc_src AS (
+  SELECT
+    account_id,
+    member_id,
+    account_type_id,
+    status
+  FROM ${ref('stg_accounts')}
+),
+
+cte_ext_members_src AS (
+  SELECT
+    member_id,
+    first_name,
+    last_name
+  FROM ${ref('members')}
+),
+
+cte_ext_types_src AS (
+  SELECT
+    account_type_id,
+    type_name
+  FROM ${ref('account_types')}
+),
+
+cte_join_acc_members AS (
+  SELECT
+    detail.account_id AS account_id,
+    detail.member_id AS member_id,
+    detail.account_type_id AS account_type_id,
+    detail.status AS status,
+    master.first_name AS first_name,
+    master.last_name AS last_name
+  FROM cte_ext_stg_acc_src AS detail
+  LEFT JOIN cte_ext_members_src AS master
+    ON detail.MEMBER_ID = master.MEMBER_ID
+),
+
+cte_join_full AS (
+  SELECT
+    detail.account_id AS account_id,
+    detail.member_id AS member_id,
+    detail.account_type_id AS account_type_id,
+    detail.status AS status,
+    detail.first_name AS first_name,
+    detail.last_name AS last_name,
+    master.type_name AS type_name
+  FROM cte_join_acc_members AS detail
+  LEFT JOIN cte_ext_types_src AS master
+    ON detail.ACCOUNT_TYPE_ID = master.ACCOUNT_TYPE_ID
+)
+
+SELECT
+  j.account_id,
+  j.member_id,
+  j.status,
+  j.first_name,
+  j.last_name,
+  j.type_name
+FROM cte_join_full AS j

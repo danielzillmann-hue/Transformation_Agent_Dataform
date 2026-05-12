@@ -1,0 +1,30 @@
+-- Dataform transformation: pension_payments
+
+config {
+  type: "table",
+  name: "pension_payments",
+  description: "Transformation from pension_payments",
+  tags: ["transformation"],
+}
+
+WITH
+cte_ext_tx_src AS (
+  SELECT
+    account_id,
+    amount,
+    transaction_type
+  FROM ${ref('transactions')}
+),
+
+cte_agg_pension AS (
+  SELECT
+    ACCOUNT_ID,
+    SUM(AMOUNT) AS TOTAL_PAYMENTS
+  FROM cte_ext_tx_src AS src
+  GROUP BY ACCOUNT_ID
+)
+
+SELECT
+  j.ACCOUNT_ID,
+  j.TOTAL_PAYMENTS
+FROM cte_agg_pension AS j

@@ -1,0 +1,47 @@
+-- Dataform transformation: core_tax_liability
+
+config {
+  type: "table",
+  name: "core_tax_liability",
+  description: "Transformation from core_tax_liability",
+  tags: ["core"],
+}
+
+WITH
+cte_ext_stg_src AS (
+  SELECT m.member_id, m.member_type, SUM(s.total_in) AS taxable_income FROM ${ref('stg_daily_metrics')} AS s JOIN ${ref('accounts')} AS a ON s.account_id = a.account_id JOIN ${ref('members')} AS m ON a.member_id = m.member_id GROUP BY m.member_id, m.member_type
+),
+
+cte_ext_tax_src AS (
+  SELECT
+    MEMBER_TYPE,
+    TAXABLE_INCOME,
+    TAX_RATE
+  FROM ${ref('tax_brackets')}
+),
+
+cte_join_tax AS (
+  SELECT
+    detail.member_id AS member_id,
+    detail.member_type AS member_type,
+    detail.taxable_income AS taxable_income,
+    master.TAX_RATE AS TAX_RATE
+  FROM cte_ext_stg_src AS detail
+  LEFT JOIN cte_ext_tax_src AS master
+    ON detail.MEMBER_TYPE = master.MEMBER_TYPE
+),
+
+cte_calc_tax AS (
+  SELECT
+    src.*,
+    src.TAXABLE_INCOME * src.TAX_RATE AS ESTIMATED_TAX
+  FROM cte_join_tax AS src
+)
+
+SELECT
+  j.member_id,
+  j.member_type,
+  j.taxable_income,
+  j.TAX_RATE,
+  j.ESTIMATED_TAX
+FROM cte_calc_tax AS j

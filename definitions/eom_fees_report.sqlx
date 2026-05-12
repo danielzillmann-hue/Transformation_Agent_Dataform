@@ -1,0 +1,26 @@
+-- Dataform transformation: eom_fees_report
+
+config {
+  type: "table",
+  name: "eom_fees_report",
+  description: "Transformation from eom_fees_report",
+  tags: ["reporting"],
+}
+
+WITH
+cte_export_fee_report_src AS (
+  SELECT srf.account_id, a.member_id, srf.transaction_date, srf.amount, srf.description FROM ${ref('stg_recent_fees')} AS srf JOIN ${ref('accounts')} AS a ON srf.account_id = a.account_id
+),
+
+cte_agg_fees_by_member AS (
+  SELECT
+    MEMBER_ID,
+    SUM(AMOUNT) AS TOTAL_FEES_DEDUCTED
+  FROM cte_export_fee_report_src AS src
+  GROUP BY MEMBER_ID
+)
+
+SELECT
+  j.MEMBER_ID,
+  j.TOTAL_FEES_DEDUCTED
+FROM cte_agg_fees_by_member AS j
